@@ -1,0 +1,52 @@
+/* 全域樣式 */
+
+:root {
+  --app-bg: #f8f9fa;
+  --app-primary: #06c755; /* LINE 綠色 */
+}
+
+body {
+  background-color: var(--app-bg);
+  min-height: 100vh;
+}
+
+/* Tocas UI 覆寫 */
+.ts-button.is-primary {
+  background-color: var(--app-primary);
+}
+
+.ts-button.is-primary:hover {
+  background-color: #05b04c;
+}
+
+/* LINE 登入按鈕樣式 */
+.ts-button.is-line {
+  background-color: #06c755;
+  color: white;
+}
+
+.ts-button.is-line:hover {
+  background-color: #05b04c;
+}
+
+/* 卡片懸浮效果 */
+.ts-box {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ts-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 自訂容器寬度 */
+.ts-container.is-narrow {
+  max-width: 960px;
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+  .ts-grid.is-3-columns {
+    grid-template-columns: 1fr;
+  }
+}
