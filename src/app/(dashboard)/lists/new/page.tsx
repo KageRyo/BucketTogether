@@ -17,6 +17,7 @@ const defaultColors = [
 export default function NewListPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [categories, setCategories] = useState<CategoryInput[]>([
@@ -44,16 +45,40 @@ export default function NewListPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError('')
 
     try {
-      // TODO: 實作建立清單功能
-      // 1. 呼叫 POST /api/lists 建立清單
-      // 2. 如有 inviteEmail，呼叫 POST /api/lists/[id]/members 發送邀請
-      // 3. 成功後導向到新清單頁面
-      console.log({ title, description, categories, inviteEmail })
-      router.push('/dashboard')
-    } catch (error) {
-      console.error('建立清單失敗:', error)
+      // 呼叫 POST /api/lists 建立清單
+      const response = await fetch('/api/lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          description,
+          categories: categories.filter(c => c.name.trim()),
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || '建立清單失敗')
+      }
+
+      // 如有 inviteEmail，發送邀請
+      if (inviteEmail && result.data?.id) {
+        await fetch(`/api/lists/${result.data.id}/members`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: inviteEmail }),
+        })
+      }
+
+      // 成功後導向到新清單頁面
+      router.push(`/lists/${result.data.id}`)
+    } catch (err) {
+      console.error('建立清單失敗:', err)
+      setError(err instanceof Error ? err.message : '建立清單失敗')
     } finally {
       setIsLoading(false)
     }
@@ -61,6 +86,13 @@ export default function NewListPage() {
 
   return (
     <div className="ts-container is-narrow" style={{ paddingTop: '2rem', paddingBottom: '2rem' }}>
+      {/* Error Message */}
+      {error && (
+        <div className="ts-notice is-negative" style={{ marginBottom: '1rem' }}>
+          <div className="content">{error}</div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ marginBottom: '2rem' }}>
         <Link href="/dashboard" className="ts-text is-link is-small">
