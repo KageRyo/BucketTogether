@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { createSupabaseAdmin } from '@/lib/supabase'
 
 // GET /api/lists - 取得使用者的所有清單
 export async function GET() {
@@ -14,13 +15,82 @@ export async function GET() {
       )
     }
 
-    // TODO: 實作 Supabase SELECT - 查詢使用者擁有或參與的所有清單
-    // 應查詢 lists 表並 JOIN list_members 表，根據 session.user 的 lineId 過濾
-    const lists: any[] = []
+    const supabase = createSupabaseAdmin()
+    const userId = (session.user as any).supabaseUserId
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: '使用者資料不完整，請重新登入' },
+        { status: 401 }
+      )
+    }
+
+    // 查詢使用者擁有的清單
+    const { data: ownedLists, error: ownedError } = await supabase
+      .from('lists')
+      .select('*')
+      .eq('owner_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (ownedError) {
+      console.error('查詢清單失敗:', ownedError)
+      throw ownedError
+    }
+
+    // 查詢每個清單的項目數量
+    const listsWithCounts = await Promise.all(
+      (ownedLists || []).map(async (list) => {
+        const { count } = await supabase
+          .from('items')
+          .select('*', { count: 'exact', head: true })
+          .eq('list_id', list.id)
+
+        return {
+          ...list,
+          isOwner: true,
+          itemCount: count || 0,
+        }
+      })
+    )
+
+    // 查詢使用者參與的清單（透過 list_members）
+    const { data: memberRecords } = await supabase
+      .from('list_members')
+      .select('list_id')
+      .eq('user_id', userId)
+
+    const participatedListIds = (memberRecords || [])
+      .map(m => m.list_id)
+      .filter(id => !listsWithCounts.some(l => l.id === id))
+
+    let participatedLists: any[] = []
+    if (participatedListIds.length > 0) {
+      const { data: pLists } = await supabase
+        .from('lists')
+        .select('*')
+        .in('id', participatedListIds)
+
+      participatedLists = await Promise.all(
+        (pLists || []).map(async (list) => {
+          const { count } = await supabase
+            .from('items')
+            .select('*', { count: 'exact', head: true })
+            .eq('list_id', list.id)
+
+          return {
+            ...list,
+            isOwner: false,
+            itemCount: count || 0,
+          }
+        })
+      )
+    }
+
+    const lists = [...listsWithCounts, ...participatedLists]
 
     return NextResponse.json(
       { data: lists },
-      { status: 200 }  // 200 OK - 成功讀取
+      { status: 200 }
     )
   } catch (error) {
     console.error('取得清單失敗:', error)
@@ -43,32 +113,72 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const supabase = createSupabaseAdmin()
+    const userId = (session.user as any).supabaseUserId
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: '使用者資料不完整，請重新登入' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     const { title, description, categories } = body
 
     if (!title || title.trim() === '') {
       return NextResponse.json(
         { error: '清單標題為必填' },
-        { status: 400 }  // 400 Bad Request - 請求格式錯誤
+        { status: 400 }
       )
     }
 
-    // TODO: 實作 Supabase INSERT - 建立新清單
-    // 1. 先查詢當前使用者的 user id
-    // 2. 在 lists 表建立清單
-    // 3. 在 list_members 表建立 owner 關係
-    // 4. 在 categories 表建立預設分類
-    const newList = {
-      id: crypto.randomUUID(),
-      title,
-      description,
-      categories,
-      created_at: new Date().toISOString(),
+    // 1. 建立清單
+    const { data: newList, error: listError } = await supabase
+      .from('lists')
+      .insert({
+        title: title.trim(),
+        description: description?.trim() || null,
+        owner_id: userId,
+        is_public: false,
+      })
+      .select()
+      .single()
+
+    if (listError || !newList) {
+      console.error('建立清單失敗:', listError)
+      throw listError || new Error('建立清單失敗')
+    }
+
+    // 2. 建立 owner 的 list_member 記錄
+    await supabase
+      .from('list_members')
+      .insert({
+        list_id: newList.id,
+        user_id: userId,
+        role: 'owner',
+        joined_at: new Date().toISOString(),
+      })
+
+    // 3. 建立預設分類（如果有提供）
+    if (categories && Array.isArray(categories) && categories.length > 0) {
+      const categoryInserts = categories
+        .filter((c: any) => c.name && c.name.trim())
+        .map((category: any, index: number) => ({
+          list_id: newList.id,
+          name: category.name.trim(),
+          color: category.color || '#3b82f6',
+          order: index,
+        }))
+
+      if (categoryInserts.length > 0) {
+        await supabase.from('categories').insert(categoryInserts)
+      }
     }
 
     return NextResponse.json(
       { data: newList, message: '清單建立成功' },
-      { status: 201 }  // 201 Created - 成功建立新資源
+      { status: 201 }
     )
   } catch (error) {
     console.error('建立清單失敗:', error)
