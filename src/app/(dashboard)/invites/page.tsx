@@ -10,7 +10,9 @@ export default async function InvitesPage() {
     redirect('/login')
   }
 
-  // TODO: 從 Supabase 取得待處理的邀請
+  // TODO: 實作 Supabase SELECT - 取得使用者待處理的邀請
+  // 應查詢 list_members 表中 joined_at 為 NULL 的記錄
+  // 並 JOIN lists 和 users 表取得邀請者資訊
   const pendingInvites: any[] = []
 
   return (
@@ -42,6 +44,8 @@ export default async function InvitesPage() {
                     </span>
                   </div>
                 </div>
+                {/* TODO: 實作接受邀請功能 - 更新 list_members.joined_at 為當前時間 */}
+                {/* TODO: 實作拒絕邀請功能 - 刪除 list_members 記錄 */}
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button className="ts-button is-positive">
                     <span className="ts-icon is-check-icon"></span>

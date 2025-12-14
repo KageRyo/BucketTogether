@@ -10,7 +10,9 @@ export default async function ListsPage() {
     redirect('/login')
   }
 
-  // TODO: 從 Supabase 取得使用者的清單
+  // TODO: 實作 Supabase SELECT - 取得使用者的所有清單
+  // 應使用 createClient from '@/lib/supabase/server' 查詢
+  // 並計算每個清單的項目完成數量
   const lists: any[] = []
 
   return (

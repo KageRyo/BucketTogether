@@ -49,6 +49,8 @@ export default function SettingsPage() {
         <div className="ts-content">
           <h3 className="ts-header">帳號設定</h3>
           
+          {/* TODO: 實作通知設定功能 - 需建立 user_preferences 表儲存使用者偏好 */}
+          {/* TODO: 實作外觀主題功能 - 支援深色/淺色模式切換 */}
           <div className="ts-menu is-start-icon" style={{ marginTop: '1rem' }}>
             <a href="#" className="item">
               <span className="ts-icon is-bell-icon"></span>

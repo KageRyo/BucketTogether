@@ -29,14 +29,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // TODO: 在 Supabase 建立邀請
+    // TODO: 實作 Supabase INSERT - 建立清單成員邀請
+    // 1. 根據 email 查詢使用者是否存在
+    // 2. 如存在，在 list_members 表建立記錄
+    // 3. 如不存在，可考慮發送邀請通知（需另建 invitations 表）
     const newMember = {
       id: crypto.randomUUID(),
-      listId,
+      list_id: listId,
       email,
       role,
-      invitedAt: new Date().toISOString(),
-      joinedAt: null,
+      invited_at: new Date().toISOString(),
+      joined_at: null,
     }
 
     return NextResponse.json(
@@ -65,7 +68,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // TODO: 從 Supabase 取得成員列表
+    // TODO: 實作 Supabase SELECT - 查詢清單的所有成員
+    // 應 JOIN users 表取得成員資料，並確認使用者有權限查看此清單
     const members: any[] = []
 
     return NextResponse.json(

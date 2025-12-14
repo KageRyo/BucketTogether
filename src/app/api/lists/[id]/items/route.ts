@@ -19,7 +19,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // TODO: 從 Supabase 取得清單項目
+    // TODO: 實作 Supabase SELECT - 查詢清單的所有項目
+    // 應使用 list_id (id) 過濾並依 order 排序，同時確認使用者有權限
     const items: any[] = []
 
     return NextResponse.json(
@@ -58,17 +59,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // TODO: 在 Supabase 建立項目
+    // TODO: 實作 Supabase INSERT - 在 items 表建立新項目
+    // 應設定 created_by 為當前使用者，並計算正確的 order 值
     const newItem = {
       id: crypto.randomUUID(),
-      listId,
+      list_id: listId,
       title,
       description,
-      categoryId,
+      category_id: categoryId,
       priority,
-      dueDate,
-      isCompleted: false,
-      createdAt: new Date().toISOString(),
+      due_date: dueDate,
+      is_completed: false,
+      created_at: new Date().toISOString(),
     }
 
     return NextResponse.json(

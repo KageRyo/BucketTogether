@@ -14,6 +14,8 @@ export const authOptions: NextAuthOptions = {
       if (account && profile) {
         token.lineId = (profile as any).sub
         token.accessToken = account.access_token
+        // TODO: 實作 Supabase 使用者同步
+        // 首次登入時應呼叫 /api/users/register 建立或更新使用者資料
       }
       return token
     },

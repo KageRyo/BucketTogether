@@ -19,7 +19,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // TODO: 從 Supabase 取得清單
+    // TODO: 實作 Supabase SELECT - 根據 id 查詢單一清單
+    // 應確認使用者有權限存取此清單（owner 或 member）
     const list = null
 
     if (!list) {
@@ -57,11 +58,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const body = await request.json()
 
-    // TODO: 在 Supabase 更新清單
+    // TODO: 實作 Supabase UPDATE - 更新清單資料
+    // 應確認使用者有編輯權限（owner 或 editor）
     const updatedList = {
       id,
       ...body,
-      updatedAt: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     }
 
     return NextResponse.json(
@@ -90,7 +92,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // TODO: 在 Supabase 刪除清單
+    // TODO: 實作 Supabase DELETE - 刪除清單
+    // 只有 owner 可以刪除清單，相關的 items、categories、list_members 會因 CASCADE 自動刪除
 
     return NextResponse.json(
       { message: '清單已刪除' },

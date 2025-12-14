@@ -14,7 +14,8 @@ export async function GET() {
       )
     }
 
-    // TODO: 從 Supabase 取得清單
+    // TODO: 實作 Supabase SELECT - 查詢使用者擁有或參與的所有清單
+    // 應查詢 lists 表並 JOIN list_members 表，根據 session.user 的 lineId 過濾
     const lists: any[] = []
 
     return NextResponse.json(
@@ -52,13 +53,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: 在 Supabase 建立清單
+    // TODO: 實作 Supabase INSERT - 建立新清單
+    // 1. 先查詢當前使用者的 user id
+    // 2. 在 lists 表建立清單
+    // 3. 在 list_members 表建立 owner 關係
+    // 4. 在 categories 表建立預設分類
     const newList = {
       id: crypto.randomUUID(),
       title,
       description,
       categories,
-      createdAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
     }
 
     return NextResponse.json(

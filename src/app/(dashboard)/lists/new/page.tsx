@@ -46,7 +46,10 @@ export default function NewListPage() {
     setIsLoading(true)
 
     try {
-      // TODO: 實作建立清單 API
+      // TODO: 實作建立清單功能
+      // 1. 呼叫 POST /api/lists 建立清單
+      // 2. 如有 inviteEmail，呼叫 POST /api/lists/[id]/members 發送邀請
+      // 3. 成功後導向到新清單頁面
       console.log({ title, description, categories, inviteEmail })
       router.push('/dashboard')
     } catch (error) {

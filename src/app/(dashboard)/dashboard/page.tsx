@@ -10,6 +10,10 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
+  // TODO: 實作 Supabase SELECT - 取得使用者的清單摘要
+  // 應查詢使用者擁有或參與的清單，並計算各清單的完成進度
+  // const lists = await fetchUserLists(session.user.lineId)
+
   return (
     <div className="ts-container" style={{ paddingTop: '2rem' }}>
       {/* Welcome Header */}

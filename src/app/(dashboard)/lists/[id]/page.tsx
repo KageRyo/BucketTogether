@@ -15,7 +15,11 @@ export default async function ListDetailPage({ params }: ListDetailPageProps) {
     redirect('/login')
   }
 
-  // TODO: 從 Supabase 取得清單詳情
+  // TODO: 實作 Supabase SELECT - 取得清單完整資料
+  // 1. 查詢清單基本資料
+  // 2. 查詢清單的所有項目 (items)
+  // 3. 查詢清單的所有分類 (categories)
+  // 4. 查詢清單的所有成員 (list_members JOIN users)
   const list = {
     id,
     title: '範例清單',
@@ -39,6 +43,8 @@ export default async function ListDetailPage({ params }: ListDetailPageProps) {
           <h1 className="ts-header is-large">{list.title}</h1>
           <p className="ts-text is-secondary">{list.description}</p>
         </div>
+        {/* TODO: 實作邀請成員功能 - 開啟邀請 Modal 並呼叫 POST /api/lists/[id]/members */}
+        {/* TODO: 實作清單設定功能 - 開啟設定 Modal 可編輯清單標題、描述、分類等 */}
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="ts-button is-outlined">
             <span className="ts-icon is-user-plus-icon"></span>
@@ -52,6 +58,8 @@ export default async function ListDetailPage({ params }: ListDetailPageProps) {
       </div>
 
       {/* Add Item Form */}
+      {/* TODO: 實作新增項目表單 - 轉換為 Client Component 處理表單提交 */}
+      {/* TODO: 呼叫 POST /api/lists/[id]/items 新增項目 */}
       <div className="ts-box" style={{ marginBottom: '1.5rem' }}>
         <div className="ts-content">
           <form style={{ display: 'flex', gap: '0.5rem' }}>

@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: 檢查使用者是否已存在
+    // TODO: 實作 Supabase 查詢 - 檢查使用者是否已存在於資料庫
+    // 應使用 createClient 從 @/lib/supabase/server 查詢 users 表
     const existingUser = null
 
     if (existingUser) {
@@ -35,14 +36,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: 在 Supabase 建立新使用者
+    // TODO: 實作 Supabase INSERT - 在 users 表建立新使用者
+    // 應使用 supabase.from('users').insert() 並處理錯誤
     const newUser = {
       id: crypto.randomUUID(),
-      lineId,
-      displayName,
-      pictureUrl,
+      line_id: lineId,
+      display_name: displayName,
+      picture_url: pictureUrl,
       email,
-      createdAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
     }
 
     return NextResponse.json(
