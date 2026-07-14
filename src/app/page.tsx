@@ -62,7 +62,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="ts-center" style={{ marginTop: '4rem', paddingBottom: '2rem' }}>
         <p className="ts-text is-secondary is-small">
-          © 2025 BucketTogether. Made with ❤️ by Chien-Hsun Chang.
+          © 2026 BucketTogether. Made with ❤️ by Chien-Hsun Chang.
         </p>
       </footer>
     </div>

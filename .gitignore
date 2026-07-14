@@ -6,6 +6,11 @@
 
 # testing
 /coverage
+/output/playwright/
+/.playwright-cli/
+
+# local development data
+/.data/
 
 # next.js
 /.next/

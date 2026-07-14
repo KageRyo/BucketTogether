@@ -67,15 +67,20 @@ export default function NewListPage() {
 
       // 如有 inviteEmail，發送邀請
       if (inviteEmail && result.data?.id) {
-        await fetch(`/api/lists/${result.data.id}/members`, {
+        const inviteResponse = await fetch(`/api/lists/${result.data.id}/members`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: inviteEmail }),
         })
+        if (!inviteResponse.ok) {
+          const inviteResult = await inviteResponse.json() as { error?: string }
+          window.alert(`清單已建立，但邀請失敗：${inviteResult.error || '請稍後再試'}`)
+        }
       }
 
       // 成功後導向到新清單頁面
       router.push(`/lists/${result.data.id}`)
+      router.refresh()
     } catch (err) {
       console.error('建立清單失敗:', err)
       setError(err instanceof Error ? err.message : '建立清單失敗')

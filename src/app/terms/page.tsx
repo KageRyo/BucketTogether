@@ -40,7 +40,7 @@ export default function TermsPage() {
           </p>
 
           <div className="ts-text is-secondary is-small" style={{ marginTop: '2rem' }}>
-            最後更新日期：2025 年 1 月
+            最後更新日期：2026 年 7 月
           </div>
         </div>
       </div>

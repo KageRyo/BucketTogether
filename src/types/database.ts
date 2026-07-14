@@ -19,28 +19,37 @@ export interface Database {
       users: {
         Row: {
           id: string
-          line_id: string
+          line_id: string | null
           display_name: string
           picture_url: string | null
-          email: string | null
+          email: string
+          role: 'admin' | 'user'
+          auth_provider: 'credentials' | 'line' | 'both'
+          password_hash: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          line_id: string
+          line_id?: string | null
           display_name: string
           picture_url?: string | null
-          email?: string | null
+          email: string
+          role?: 'admin' | 'user'
+          auth_provider: 'credentials' | 'line' | 'both'
+          password_hash?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
-          line_id?: string
+          line_id?: string | null
           display_name?: string
           picture_url?: string | null
-          email?: string | null
+          email?: string
+          role?: 'admin' | 'user'
+          auth_provider?: 'credentials' | 'line' | 'both'
+          password_hash?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -83,6 +92,8 @@ export interface Database {
           list_id: string
           user_id: string
           role: 'owner' | 'editor' | 'viewer'
+          status: 'pending' | 'accepted'
+          invited_by: string | null
           invited_at: string
           joined_at: string | null
         }
@@ -91,6 +102,8 @@ export interface Database {
           list_id: string
           user_id: string
           role?: 'owner' | 'editor' | 'viewer'
+          status?: 'pending' | 'accepted'
+          invited_by?: string | null
           invited_at?: string
           joined_at?: string | null
         }
@@ -99,6 +112,8 @@ export interface Database {
           list_id?: string
           user_id?: string
           role?: 'owner' | 'editor' | 'viewer'
+          status?: 'pending' | 'accepted'
+          invited_by?: string | null
           invited_at?: string
           joined_at?: string | null
         }
@@ -109,7 +124,6 @@ export interface Database {
           list_id: string
           name: string
           color: string
-          icon: string | null
           order: number
           created_at: string
         }
@@ -118,7 +132,6 @@ export interface Database {
           list_id: string
           name: string
           color?: string
-          icon?: string | null
           order?: number
           created_at?: string
         }
@@ -127,7 +140,6 @@ export interface Database {
           list_id?: string
           name?: string
           color?: string
-          icon?: string | null
           order?: number
           created_at?: string
         }
@@ -190,7 +202,10 @@ export interface Database {
       [_ in never]: never
     }
     Enums: {
+      app_role: 'admin' | 'user'
+      auth_provider: 'credentials' | 'line' | 'both'
       member_role: 'owner' | 'editor' | 'viewer'
+      membership_status: 'pending' | 'accepted'
       priority_level: 'low' | 'medium' | 'high'
     }
   }

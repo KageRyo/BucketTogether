@@ -1,87 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { getDataRepository, ITEM_PRIORITIES, type ItemPriority } from '@/lib/data'
+import { apiErrorResponse, optionalString, readJsonObject, requireApiUserId } from '@/lib/http/api'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
-// GET /api/lists/[id]/items - 取得清單所有項目
-export async function GET(request: NextRequest, { params }: RouteParams) {
+function priority(value: unknown): ItemPriority | null | undefined {
+  if (value === null) return null
+  return typeof value === 'string' && ITEM_PRIORITIES.includes(value as ItemPriority)
+    ? value as ItemPriority
+    : undefined
+}
+
+export async function GET(_request: Request, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions)
+    const userId = await requireApiUserId()
     const { id } = await params
-    
-    if (!session) {
-      return NextResponse.json(
-        { error: '未授權，請先登入' },
-        { status: 401 }
-      )
-    }
-
-    // TODO: 實作 Supabase SELECT - 查詢清單的所有項目
-    // 應使用 list_id (id) 過濾並依 order 排序，同時確認使用者有權限
-    const items: any[] = []
-
-    return NextResponse.json(
-      { data: items },
-      { status: 200 }
-    )
+    const items = await getDataRepository().listItems(userId, id)
+    return NextResponse.json({ data: items })
   } catch (error) {
-    console.error('取得項目失敗:', error)
-    return NextResponse.json(
-      { error: '伺服器錯誤' },
-      { status: 500 }
-    )
+    return apiErrorResponse(error)
   }
 }
 
-// POST /api/lists/[id]/items - 新增項目到清單
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(request: Request, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions)
-    const { id: listId } = await params
-    
-    if (!session) {
-      return NextResponse.json(
-        { error: '未授權，請先登入' },
-        { status: 401 }
-      )
-    }
-
-    const body = await request.json()
-    const { title, description, categoryId, priority, dueDate } = body
-
-    if (!title || title.trim() === '') {
-      return NextResponse.json(
-        { error: '項目標題為必填' },
-        { status: 400 }
-      )
-    }
-
-    // TODO: 實作 Supabase INSERT - 在 items 表建立新項目
-    // 應設定 created_by 為當前使用者，並計算正確的 order 值
-    const newItem = {
-      id: crypto.randomUUID(),
-      list_id: listId,
-      title,
-      description,
-      category_id: categoryId,
-      priority,
-      due_date: dueDate,
-      is_completed: false,
-      created_at: new Date().toISOString(),
-    }
-
-    return NextResponse.json(
-      { data: newItem, message: '項目新增成功' },
-      { status: 201 }  // 201 Created - 成功建立新資源
-    )
+    const userId = await requireApiUserId()
+    const { id } = await params
+    const body = await readJsonObject(request)
+    const item = await getDataRepository().createItem(userId, id, {
+      title: optionalString(body.title) || '',
+      description: optionalString(body.description),
+      categoryId: optionalString(body.categoryId),
+      priority: priority(body.priority),
+      dueDate: optionalString(body.dueDate),
+    })
+    return NextResponse.json({ data: item, message: '項目新增成功' }, { status: 201 })
   } catch (error) {
-    console.error('新增項目失敗:', error)
-    return NextResponse.json(
-      { error: '伺服器錯誤' },
-      { status: 500 }
-    )
+    return apiErrorResponse(error)
   }
 }

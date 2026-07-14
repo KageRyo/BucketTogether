@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function SettingsPage() {
   const { data: session } = useSession()
@@ -30,15 +31,18 @@ export default function SettingsPage() {
           <h3 className="ts-header">個人資料</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
             {session?.user?.image && (
-              <img 
-                src={session.user.image} 
-                alt="avatar" 
-                style={{ width: '64px', height: '64px', borderRadius: '50%' }}
+              <Image
+                src={session.user.image}
+                alt="avatar"
+                width={64}
+                height={64}
+                style={{ borderRadius: '50%' }}
               />
             )}
             <div>
               <div className="ts-header">{session?.user?.name || '使用者'}</div>
               <div className="ts-text is-secondary">{session?.user?.email || '透過 LINE 登入'}</div>
+              <div className="ts-text is-secondary is-small">角色：{session?.user?.role || 'user'} · 登入：{session?.user?.authProvider || '-'}</div>
             </div>
           </div>
         </div>
@@ -49,8 +53,6 @@ export default function SettingsPage() {
         <div className="ts-content">
           <h3 className="ts-header">帳號設定</h3>
           
-          {/* TODO: 實作通知設定功能 - 需建立 user_preferences 表儲存使用者偏好 */}
-          {/* TODO: 實作外觀主題功能 - 支援深色/淺色模式切換 */}
           <div className="ts-menu is-start-icon" style={{ marginTop: '1rem' }}>
             <a href="#" className="item">
               <span className="ts-icon is-bell-icon"></span>

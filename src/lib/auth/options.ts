@@ -1,73 +1,94 @@
+import CredentialsProvider from 'next-auth/providers/credentials'
 import LineProvider from 'next-auth/providers/line'
 import type { NextAuthOptions } from 'next-auth'
-import { createSupabaseAdmin } from '@/lib/supabase'
+import type { Provider } from 'next-auth/providers/index'
+import { getDataRepository } from '@/lib/data'
+
+export const isLineLoginEnabled = Boolean(
+  process.env.LINE_CHANNEL_ID && process.env.LINE_CHANNEL_SECRET,
+)
+
+const providers: Provider[] = [
+  CredentialsProvider({
+    name: '帳號密碼',
+    credentials: {
+      email: { label: 'Email', type: 'email' },
+      password: { label: '密碼', type: 'password' },
+    },
+    async authorize(credentials) {
+      if (!credentials?.email || !credentials.password) {
+        return null
+      }
+
+      const user = await getDataRepository().authenticateCredentials(
+        credentials.email,
+        credentials.password,
+      )
+
+      if (!user) {
+        return null
+      }
+
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.displayName,
+        image: user.pictureUrl,
+        role: user.role,
+        authProvider: user.authProvider,
+      }
+    },
+  }),
+]
+
+if (isLineLoginEnabled) {
+  providers.push(LineProvider({
+    clientId: process.env.LINE_CHANNEL_ID!,
+    clientSecret: process.env.LINE_CHANNEL_SECRET!,
+    authorization: { params: { scope: 'profile openid email' } },
+  }))
+}
 
 export const authOptions: NextAuthOptions = {
-  providers: [
-    LineProvider({
-      clientId: process.env.LINE_CHANNEL_ID!,
-      clientSecret: process.env.LINE_CHANNEL_SECRET!,
-    }),
-  ],
+  providers,
+  secret: process.env.NEXTAUTH_SECRET
+    || (process.env.NODE_ENV !== 'production' ? 'bucket-together-local-development-only' : undefined),
   callbacks: {
-    async jwt({ token, account, profile }) {
-      // 首次登入時儲存 LINE 資訊並同步到 Supabase
-      if (account && profile) {
-        const lineProfile = profile as { sub?: string; name?: string; picture?: string; email?: string }
-        token.lineId = lineProfile.sub
-        token.accessToken = account.access_token
+    async jwt({ token, account, profile, user }) {
+      if (account?.provider === 'credentials' && user) {
+        token.userId = user.id
+        token.role = user.role
+        token.authProvider = user.authProvider
+      }
 
-        // 同步使用者到 Supabase
-        try {
-          const supabase = createSupabaseAdmin()
-          
-          // 檢查使用者是否已存在
-          const { data: existingUser } = await supabase
-            .from('users')
-            .select('id')
-            .eq('line_id', lineProfile.sub || '')
-            .single()
+      if (account?.provider === 'line' && profile) {
+        const lineProfile = profile as {
+          sub?: string
+          name?: string
+          picture?: string
+          email?: string
+        }
 
-          if (existingUser) {
-            // 更新現有使用者
-            await supabase
-              .from('users')
-              .update({
-                display_name: lineProfile.name || (token.name as string) || 'User',
-                picture_url: lineProfile.picture || (token.picture as string) || null,
-                email: lineProfile.email || (token.email as string) || null,
-              })
-              .eq('line_id', lineProfile.sub || '')
-            
-            token.supabaseUserId = existingUser.id
-          } else {
-            // 建立新使用者
-            const { data: newUser } = await supabase
-              .from('users')
-              .insert({
-                line_id: lineProfile.sub || '',
-                display_name: lineProfile.name || (token.name as string) || 'User',
-                picture_url: lineProfile.picture || (token.picture as string) || null,
-                email: lineProfile.email || (token.email as string) || null,
-              })
-              .select('id')
-              .single()
-
-            if (newUser) {
-              token.supabaseUserId = newUser.id
-            }
-          }
-        } catch (error) {
-          console.error('同步使用者到 Supabase 失敗:', error)
+        if (lineProfile.sub) {
+          const appUser = await getDataRepository().upsertLineUser({
+            lineId: lineProfile.sub,
+            displayName: lineProfile.name || token.name || 'LINE User',
+            pictureUrl: lineProfile.picture || token.picture,
+            email: lineProfile.email || token.email,
+          })
+          token.userId = appUser.id
+          token.role = appUser.role
+          token.authProvider = appUser.authProvider
         }
       }
+
       return token
     },
     async session({ session, token }) {
-      // 將 LINE ID 和 Supabase User ID 加入 session
-      if (session.user) {
-        (session.user as any).lineId = token.lineId as string
-        (session.user as any).supabaseUserId = token.supabaseUserId as string
+      if (session.user && token.userId && token.role && token.authProvider) {
+        session.user.id = token.userId
+        session.user.role = token.role
+        session.user.authProvider = token.authProvider
       }
       return session
     },

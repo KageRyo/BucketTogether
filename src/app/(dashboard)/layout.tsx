@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default async function DashboardLayout({
   children,
@@ -10,7 +11,7 @@ export default async function DashboardLayout({
 }) {
   const session = await getServerSession(authOptions)
 
-  if (!session) {
+  if (!session?.user?.id) {
     redirect('/login')
   }
 
@@ -67,15 +68,19 @@ export default async function DashboardLayout({
             <div className="ts-content is-dense">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {session.user?.image && (
-                  <img 
-                    src={session.user.image} 
-                    alt="avatar" 
-                    style={{ width: '32px', height: '32px', borderRadius: '50%' }}
+                  <Image
+                    src={session.user.image}
+                    alt="avatar"
+                    width={32}
+                    height={32}
+                    style={{ borderRadius: '50%' }}
                   />
                 )}
                 <div>
                   <div className="ts-text is-bold is-small">{session.user?.name}</div>
-                  <div className="ts-text is-secondary is-tiny">{session.user?.email}</div>
+                  <div className="ts-text is-secondary is-tiny">
+                    {session.user?.email} · {session.user.role}
+                  </div>
                 </div>
               </div>
             </div>

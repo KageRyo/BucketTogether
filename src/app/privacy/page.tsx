@@ -16,7 +16,8 @@ export default function PrivacyPage() {
         <div className="ts-content">
           <h2 className="ts-header">1. 資料收集</h2>
           <p className="ts-text" style={{ marginBottom: '1.5rem' }}>
-            我們透過 LINE Login 收集您的基本資料，包括顯示名稱、頭像和電子郵件（如有提供）。
+            我們會處理帳密登入的 Email、顯示名稱與雜湊密碼；啟用 LINE Login 時，
+            也會處理 LINE 提供的識別碼、顯示名稱、頭像與 Email（如有提供）。
             這些資料僅用於提供服務和改善使用者體驗。
           </p>
 
@@ -32,7 +33,8 @@ export default function PrivacyPage() {
 
           <h2 className="ts-header">3. 資料儲存</h2>
           <p className="ts-text" style={{ marginBottom: '1.5rem' }}>
-            您的資料儲存在 Supabase 雲端服務，採用業界標準的安全措施保護。
+            本地開發版將資料儲存在開發者的本機檔案。未來正式環境會使用受管理的資料庫服務，
+            並在上線前更新此政策的儲存地區與服務商資訊。
           </p>
 
           <h2 className="ts-header">4. 資料分享</h2>
@@ -51,7 +53,7 @@ export default function PrivacyPage() {
           </p>
 
           <div className="ts-text is-secondary is-small" style={{ marginTop: '2rem' }}>
-            最後更新日期：2025 年 1 月
+            最後更新日期：2026 年 7 月
           </div>
         </div>
       </div>
