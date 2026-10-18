@@ -16,7 +16,7 @@ export async function GET() {
 // POST /api/lists - 建立清單與初始分類
 export async function POST(request: Request) {
   try {
-    const userId = await requireApiUserId()
+    const userId = await requireApiUserId(request)
     const body = await readJsonObject(request)
     const categories = Array.isArray(body.categories)
       ? body.categories.flatMap((category) => {

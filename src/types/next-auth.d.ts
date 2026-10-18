@@ -3,7 +3,7 @@ import type { AppRole, AuthProvider } from '@/lib/data'
 
 declare module 'next-auth' {
   interface Session {
-    user: {
+    user?: {
       id: string
       role: AppRole
       authProvider: AuthProvider
@@ -18,6 +18,7 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
   interface JWT {
+    sessionId?: string
     userId?: string
     role?: AppRole
     authProvider?: AuthProvider

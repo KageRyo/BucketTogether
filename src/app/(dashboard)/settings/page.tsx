@@ -1,112 +1,125 @@
 'use client'
-
-import { useState } from 'react'
-import { useSession, signOut } from 'next-auth/react'
-import Link from 'next/link'
-import Image from 'next/image'
-
+import { useEffect, useState } from 'react'
+import { getProviders, signIn, signOut, useSession } from 'next-auth/react'
+import { apiRequest } from '@/lib/http/client'
+import type { OAuthProvider } from '@/lib/data'
+const names: Record<string, string> = { line: 'LINE', discord: 'Discord', google: 'Google' }
 export default function SettingsPage() {
   const { data: session } = useSession()
-  const [isLoading, setIsLoading] = useState(false)
-
-  const handleSignOut = async () => {
-    setIsLoading(true)
-    await signOut({ callbackUrl: '/' })
+  const [identities, setIdentities] = useState<{ provider: OAuthProvider }[]>([])
+  const [providers, setProviders] = useState<string[]>([])
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    const hasLinkError = new URLSearchParams(window.location.search).has('error')
+    Promise.all([apiRequest<{ provider: OAuthProvider }[]>('/api/account'), getProviders()])
+      .then(([accounts, available]) => {
+        if (hasLinkError) setError('綁定未完成，請重新操作。')
+        setIdentities(accounts)
+        setProviders(Object.keys(available || {}).filter((id) => names[id]))
+        setReady(true)
+      })
+      .catch(() => setError('無法載入帳號資料，請重新整理。'))
+  }, [])
+  const link = async (provider: string) => {
+    setBusy(true)
+    setError('')
+    try {
+      await apiRequest('/api/account/link', { method: 'POST', body: JSON.stringify({ provider }) })
+      await signIn(provider, { callbackUrl: '/settings' })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '綁定失敗')
+      setBusy(false)
+    }
   }
-
+  const deleteAccount = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      await apiRequest('/api/account', { method: 'DELETE', body: JSON.stringify({ confirmation }) })
+      sessionStorage.removeItem('bucket-invite')
+      await signOut({ callbackUrl: '/' })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '刪除失敗')
+      setBusy(false)
+    }
+  }
   return (
-    <div className="ts-container is-narrow" style={{ paddingTop: '2rem' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 className="ts-header is-large">
-          <span className="ts-icon is-gear-icon"></span>
-          設定
-        </h1>
-        <p className="ts-text is-secondary">管理你的帳號和偏好設定</p>
-      </div>
-
-      {/* Profile Section */}
-      <div className="ts-box" style={{ marginBottom: '1.5rem' }}>
+    <div className="ts-container is-narrow" style={{ padding: '2rem 1rem' }}>
+      <h1 className="ts-header is-large">帳號設定</h1>
+      {error && <p role="alert">{error}</p>}
+      <section className="ts-box" style={{ margin: '1.5rem 0' }}>
         <div className="ts-content">
-          <h3 className="ts-header">個人資料</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
-            {session?.user?.image && (
-              <Image
-                src={session.user.image}
-                alt="avatar"
-                width={64}
-                height={64}
-                style={{ borderRadius: '50%' }}
-              />
-            )}
-            <div>
-              <div className="ts-header">{session?.user?.name || '使用者'}</div>
-              <div className="ts-text is-secondary">{session?.user?.email || '透過 LINE 登入'}</div>
-              <div className="ts-text is-secondary is-small">角色：{session?.user?.role || 'user'} · 登入：{session?.user?.authProvider || '-'}</div>
+          <h2 className="ts-header">個人資料</h2>
+          <p>{session?.user?.name}</p>
+          <p>{session?.user?.email || '未提供 Email'}</p>
+        </div>
+      </section>
+      <section className="ts-box">
+        <div className="ts-content">
+          <h2 className="ts-header">登入方式</h2>
+          <p>綁定後，可以使用不同平台登入同一帳號。相同 Email 不會自動合併帳號。</p>
+          {!ready ? (
+            <p>載入中…</p>
+          ) : (
+            <div className="app-stack">
+              {providers.map((provider) => (
+                <div key={provider} className="app-actions">
+                  <span>{names[provider]}</span>
+                  {identities.some((i) => i.provider === provider) ? (
+                    <span>已綁定</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className="ts-button is-outlined"
+                      disabled={busy}
+                      onClick={() => void link(provider)}
+                    >
+                      綁定 {names[provider]}
+                    </button>
+                  )}
+                </div>
+              ))}
+              {!providers.length && <p>目前使用本地測試帳號。</p>}
             </div>
-          </div>
+          )}
         </div>
-      </div>
-
-      {/* Account Section */}
-      <div className="ts-box" style={{ marginBottom: '1.5rem' }}>
-        <div className="ts-content">
-          <h3 className="ts-header">帳號設定</h3>
-          
-          <div className="ts-menu is-start-icon" style={{ marginTop: '1rem' }}>
-            <a href="#" className="item">
-              <span className="ts-icon is-bell-icon"></span>
-              通知設定
-              <span className="ts-badge is-secondary" style={{ marginLeft: 'auto' }}>即將推出</span>
-            </a>
-            <a href="#" className="item">
-              <span className="ts-icon is-palette-icon"></span>
-              外觀主題
-              <span className="ts-badge is-secondary" style={{ marginLeft: 'auto' }}>即將推出</span>
-            </a>
-            <a href="#" className="item">
-              <span className="ts-icon is-language-icon"></span>
-              語言設定
-              <span className="ts-text is-secondary" style={{ marginLeft: 'auto' }}>正體中文</span>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* Danger Zone */}
-      <div className="ts-box is-negative" style={{ marginBottom: '1.5rem' }}>
-        <div className="ts-content">
-          <h3 className="ts-header">登出</h3>
-          <p className="ts-text is-secondary" style={{ marginBottom: '1rem' }}>
-            登出後需要重新使用 LINE 登入
+      </section>
+      <section className="ts-box is-negative" style={{ margin: '1.5rem 0' }}>
+        <div className="ts-content app-stack">
+          <h2 className="ts-header">刪除帳號</h2>
+          <p>
+            這會永久刪除你的帳號、登入綁定及你擁有的所有清單，並退出其他人的清單。其他清單中的共同編輯內容會保留，作者與完成者改為匿名。備份中的資料依備份保留期間到期移除。
           </p>
-          <button 
-            onClick={handleSignOut} 
-            className="ts-button is-negative is-outlined"
-            disabled={isLoading}
+          <label>
+            輸入 DELETE 確認
+            <input
+              className="app-field"
+              value={confirmation}
+              onChange={(e) => setConfirmation(e.target.value)}
+              autoComplete="off"
+            />
+          </label>
+          <button
+            type="button"
+            className="ts-button is-negative"
+            disabled={busy || confirmation !== 'DELETE'}
+            onClick={() => void deleteAccount()}
           >
-            {isLoading ? (
-              <>
-                <span className="ts-icon is-spinning is-spinner-icon"></span>
-                登出中...
-              </>
-            ) : (
-              <>
-                <span className="ts-icon is-right-from-bracket-icon"></span>
-                登出帳號
-              </>
-            )}
+            永久刪除帳號與擁有的清單
           </button>
         </div>
-      </div>
-
-      {/* Back Link */}
-      <div className="ts-center">
-        <Link href="/dashboard" className="ts-text is-link">
-          <span className="ts-icon is-arrow-left-icon"></span>
-          返回首頁
-        </Link>
-      </div>
+      </section>
+      <button
+        type="button"
+        className="ts-button is-outlined"
+        disabled={busy}
+        onClick={() => void signOut({ callbackUrl: '/' })}
+      >
+        登出
+      </button>
     </div>
   )
 }

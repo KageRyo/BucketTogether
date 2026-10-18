@@ -1,55 +1,40 @@
 # 架構與權限
 
-## 請求流程
-
 ```text
-Next.js page / client component
-        │
-        ├─ NextAuth session (Credentials or LINE)
-        │
-        └─ Route Handler
-              ├─ session user id
-              ├─ input validation
-              └─ DataRepository
-                    └─ LocalFileRepository (.data/*.json)
+Browser → Next.js pages / Route Handlers → NextAuth JWT → DataRepository
+                                                        ├─ local JSON (development)
+                                                        └─ Supabase PostgreSQL (production)
 ```
 
-畫面會隱藏不允許的操作，但最終權限仍由 repository 檢查，不信任從瀏覽器送來的角色或使用者 ID。
+## Authentication
 
-## 驗證
+LINE, Discord and Google use NextAuth OAuth state/PKCE checks and one application-user namespace. `oauth_identities(provider, provider_account_id)` uniquely identifies the external identity; `(user_id, provider)` permits one identity from each platform per account. Email is optional and non-unique and never links accounts automatically.
 
-- Credentials provider 從本地 repository 驗證 email 與 scrypt 密碼雜湊。
-- LINE provider 只在 `LINE_CHANNEL_ID` 與 `LINE_CHANNEL_SECRET` 都存在時啟用。
-- LINE 與 Credentials 都會寫入同一組 JWT 欄位：`userId`、`role`、`authProvider`。
-- 帳號可透過相同 email 連結 LINE，`authProvider` 會變為 `both`。
+Explicit linking starts with a same-origin, authenticated POST. An encrypted five-minute HttpOnly cookie binds the intent to the current user, session ID, provider and the OAuth authorization state's value. The callback checks all four before linking. Conflicting identities fail; there is no account-merging endpoint. No OAuth access/refresh tokens are persisted. Credentials and seed data are development-only.
 
-## 權限模型
+Every JWT callback re-reads the application account. Deleted users lose authorization immediately on the next request, including requests made with previously issued JWTs; platform roles are refreshed too. Repository authorization uses database state, not client-submitted role fields.
 
-| 角色 | 權限 |
-| --- | --- |
-| `admin` | 平台管理員，可查看與管理所有本地清單。 |
-| `owner` | 可編輯／刪除清單、分類、項目與成員。 |
-| `editor` | 可查看清單並新增、修改、刪除項目。 |
-| `viewer` | 僅可查看清單與進度。 |
+## Data and transactions
 
-待接受的 membership 不授予清單存取權；只有接受後才生效。
+`DATA_BACKEND=supabase` uses the server-only `DATABASE_URL` and `postgres` driver, with verified TLS, a small connection pool and prepared statements disabled for Supabase's transaction pooler. No Supabase Auth, anon keys, service-role API keys, browser database clients or browser table grants are needed. All application tables enable RLS with no browser policies. The privileged server database connection is the trust boundary: keep it out of client bundles and logs.
 
-## 資料層
+List mutations lock the list row before checking/editing related data. Creation of a list, owner membership and initial categories is one transaction. Reads of list details use a repeatable snapshot. Provider-identity advisory locks serialize concurrent first sign-ins. Invite acceptance locks the list then the invitation and consumes the token in the membership transaction.
 
-`DataRepository` 是應用程式與實際儲存的邊界。現行 `LocalFileRepository` 具有：
+`version` on lists covers list settings; item changes update list `updated_at` without incrementing its settings version. Item versions cover item editing/completion and category removal. PATCH requires `expectedVersion`; stale writes return HTTP 409 without changes. The UI retains drafts and asks users to compare the current data before adopting the new baseline.
 
-- 單一 process 中的串行化操作。
-- 先寫临時檔再 rename 的原子寫入。
-- 首次啟動時建立已雜湊的種子帳號與範例清單。
-- 所有外傳使用者資料都會排除 `passwordHash`。
+Share tokens are random 256-bit values and only SHA-256 hashes are stored. Tokens arrive in URL fragments, then live only in tab sessionStorage during login. Invite previews disclose title/role/expiry to authenticated token holders. Acceptance is explicit, single-use and allowed for seven days. Existing accepted members retain their role. Owner/admin can revoke and list token-free invite metadata.
 
-本地 JSON 只適合開發與單機演示，不支援多個 server process 同時寫入。正式環境應實作 Supabase adapter。
+## Roles and deletion
 
-## 主要目錄
+- `admin`: platform-wide list management, provisioned manually by the operator.
+- `owner`: list settings, deletion, categories, members and invitations.
+- `editor`: list read and item changes.
+- `viewer`: list read only.
 
-- `src/app`: App Router 畫面與 API route handlers。
-- `src/components/lists`: 清單與項目互動畫面。
-- `src/lib/auth`: NextAuth Credentials / LINE 設定。
-- `src/lib/data`: domain types、repository interface 與本地實作。
-- `src/lib/http`: API session、解析與錯誤回應共用工具。
-- `supabase/schema.sql`: 未來 Supabase adapter 預備 schema。
+All lists are private. Pending memberships confer no access. Legacy public flags are ignored/migrated to false. Member responses omit email and password/identity secrets. Account deletion cascades owned lists, memberships and identities, and nulls author/completer references on other lists.
+
+## Abuse controls and observability
+
+Mutation routes require a valid session, matching canonical Origin and a bounded JSON body (64 KiB). Auth starts/callbacks are rate limited to 30/minute/IP on Vercel; user buckets allow 60 writes/minute, 10 invite actions/minute and 5 account actions/minute. Production buckets use PostgreSQL atomic upsert across instances. Local mode's in-process limiter is for development only. Unknown/self-hosted proxy environments use a shared auth bucket until a trusted IP source is configured.
+
+`/api/health` checks database/schema connectivity and returns 503 on failure. Application error logs contain event type, route template/digest or error kind, not request bodies or OAuth tokens. Hosting access logs need their own retention and access policy. Expired rate-limit records require periodic maintenance as described in deployment.md.

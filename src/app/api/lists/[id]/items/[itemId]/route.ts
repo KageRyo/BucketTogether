@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getDataRepository, ITEM_PRIORITIES, type ItemPriority } from '@/lib/data'
-import { apiErrorResponse, optionalString, readJsonObject, requireApiUserId } from '@/lib/http/api'
+import {
+  apiErrorResponse,
+  expectedVersion,
+  optionalString,
+  readJsonObject,
+  requireApiUserId,
+} from '@/lib/http/api'
 
 interface RouteParams {
   params: Promise<{ id: string; itemId: string }>
@@ -9,16 +15,17 @@ interface RouteParams {
 function priority(value: unknown): ItemPriority | null | undefined {
   if (value === null) return null
   return typeof value === 'string' && ITEM_PRIORITIES.includes(value as ItemPriority)
-    ? value as ItemPriority
+    ? (value as ItemPriority)
     : undefined
 }
 
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const userId = await requireApiUserId()
+    const userId = await requireApiUserId(request)
     const { id, itemId } = await params
     const body = await readJsonObject(request)
     const item = await getDataRepository().updateItem(userId, id, itemId, {
+      expectedVersion: expectedVersion(body.expectedVersion),
       title: optionalString(body.title),
       description: body.description === null ? null : optionalString(body.description),
       categoryId: body.categoryId === null ? null : optionalString(body.categoryId),
@@ -32,9 +39,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
+export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const userId = await requireApiUserId()
+    const userId = await requireApiUserId(request)
     const { id, itemId } = await params
     await getDataRepository().deleteItem(userId, id, itemId)
     return NextResponse.json({ message: '項目已刪除' })

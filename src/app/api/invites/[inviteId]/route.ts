@@ -8,7 +8,7 @@ interface RouteParams {
 
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const userId = await requireApiUserId()
+    const userId = await requireApiUserId(request)
     const { inviteId } = await params
     const body = await readJsonObject(request)
     if (body.action !== 'accept' && body.action !== 'reject') {

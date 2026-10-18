@@ -8,7 +8,7 @@ interface RouteParams {
 
 export async function POST(request: Request, { params }: RouteParams) {
   try {
-    const userId = await requireApiUserId()
+    const userId = await requireApiUserId(request)
     const { id } = await params
     const body = await readJsonObject(request)
     const category = await getDataRepository().createCategory(

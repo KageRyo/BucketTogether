@@ -1,52 +1,209 @@
-/* 全域樣式 */
-
 :root {
   --app-bg: #f8f9fa;
-  --app-primary: #06c755; /* LINE 綠色 */
+  --app-primary: #147d43;
+  --app-border: #d8e2dc;
+  --app-text: #183327;
 }
-
+* {
+  box-sizing: border-box;
+}
 body {
-  background-color: var(--app-bg);
+  margin: 0;
+  background: var(--app-bg);
+  color: var(--app-text);
   min-height: 100vh;
+  font-family: 'Noto Sans TC', system-ui, sans-serif;
 }
-
-/* Tocas UI 覆寫 */
 .ts-button.is-primary {
-  background-color: var(--app-primary);
-}
-
-.ts-button.is-primary:hover {
-  background-color: #05b04c;
-}
-
-/* LINE 登入按鈕樣式 */
-.ts-button.is-line {
-  background-color: #06c755;
+  background: var(--app-primary);
   color: white;
 }
-
-.ts-button.is-line:hover {
-  background-color: #05b04c;
+.ts-button.is-primary:hover {
+  background: #106537;
 }
-
-/* 卡片懸浮效果 */
-.ts-box {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+.ts-button.is-line {
+  background: #06c755;
+  color: #082b16;
 }
-
-.ts-box:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.ts-button.is-discord {
+  background: #5865f2;
+  color: white;
 }
-
-/* 自訂容器寬度 */
+.ts-button.is-google {
+  background: white;
+  color: #23352a;
+  border: 1px solid var(--app-border);
+}
 .ts-container.is-narrow {
   max-width: 960px;
 }
-
-/* 響應式調整 */
+.app-shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  min-height: 100dvh;
+  width: 100%;
+}
+.app-sidebar {
+  background: white;
+  border-right: 1px solid var(--app-border);
+  padding: 1.5rem;
+}
+.app-brand {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 750;
+  color: var(--app-primary);
+  margin-bottom: 1.5rem;
+}
+.app-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.app-sidebar nav a {
+  padding: 0.65rem 0.5rem;
+  border-radius: 0.4rem;
+  color: var(--app-text);
+}
+.app-sidebar nav a:hover {
+  background: #edf5ef;
+}
+.app-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-top: 1px solid var(--app-border);
+  margin-top: 2rem;
+  padding-top: 1rem;
+  overflow-wrap: anywhere;
+}
+.app-main {
+  min-width: 0;
+}
+.app-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.app-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.app-field {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin-top: 0.4rem;
+  border: 1px solid #9dad9f;
+  border-radius: 0.35rem;
+  background: white;
+  color: var(--app-text);
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+}
+.app-editor {
+  padding: 1.25rem;
+  border: 2px solid var(--app-primary);
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+  background: white;
+  display: grid;
+  gap: 1rem;
+}
+.app-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.app-item-row {
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.app-invite-links {
+  padding-left: 1.25rem;
+  overflow-wrap: anywhere;
+}
+.app-invite-links li {
+  padding: 0.5rem 0;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button,
+a,
+input,
+select {
+  touch-action: manipulation;
+}
+button:not(:disabled),
+a {
+  cursor: pointer;
+}
+:focus-visible {
+  outline: 3px solid #2968b2;
+  outline-offset: 3px;
+}
+p {
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
 @media (max-width: 768px) {
-  .ts-grid.is-3-columns {
-    grid-template-columns: 1fr;
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .app-sidebar {
+    padding: 1rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--app-border);
+  }
+  .app-brand {
+    margin-bottom: 0.75rem;
+  }
+  .app-sidebar nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .app-sidebar nav a {
+    padding: 0.5rem;
+  }
+  .app-profile {
+    display: none;
+  }
+  .app-main .ts-container {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  body .ts-container .ts-grid,
+  .app-editor-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body .ts-container .ts-grid > .column {
+    max-width: 100%;
+    width: 100%;
+  }
+  .ts-grid > .column {
+    min-width: 0;
+  }
+  .app-item-row > input {
+    flex-shrink: 0;
+  }
+  .app-field {
+    font-size: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
   }
 }

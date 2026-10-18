@@ -8,11 +8,14 @@ interface RouteParams {
 
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const userId = await requireApiUserId()
+    const userId = await requireApiUserId(request)
     const { id, membershipId } = await params
     const body = await readJsonObject(request)
     const role = body.role
-    if (typeof role !== 'string' || !INVITABLE_ROLES.includes(role as Exclude<MemberRole, 'owner'>)) {
+    if (
+      typeof role !== 'string' ||
+      !INVITABLE_ROLES.includes(role as Exclude<MemberRole, 'owner'>)
+    ) {
       throw new DataError('VALIDATION_ERROR', '角色必須為 editor 或 viewer')
     }
     const member = await getDataRepository().updateMemberRole(
@@ -27,9 +30,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
+export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const userId = await requireApiUserId()
+    const userId = await requireApiUserId(request)
     const { id, membershipId } = await params
     await getDataRepository().removeMember(userId, id, membershipId)
     return NextResponse.json({ message: '成員已移除' })
