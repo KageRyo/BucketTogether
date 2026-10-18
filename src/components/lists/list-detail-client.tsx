@@ -8,6 +8,8 @@ import { apiRequest, ApiError } from '@/lib/http/client'
 import { OwnershipTransfer } from './ownership-transfer'
 import { ItemEditor } from './item-editor'
 import { ListExport } from './list-export'
+import { ItemViewControls } from './item-view-controls'
+import { DEFAULT_ITEM_VIEW, selectItems, type ItemView } from '@/lib/lists/item-view'
 import { InviteLinks } from '@/components/invites/invite-links'
 
 export function ListDetailClient({ initialList }: { initialList: ListDetails }) {
@@ -25,10 +27,15 @@ export function ListDetailClient({ initialList }: { initialList: ListDetails }) 
   const [settingsDescription, setSettingsDescription] = useState(list.description || '')
   const [settingsVersion, setSettingsVersion] = useState(list.version)
   const [editing, setEditing] = useState<ListItem | null>(null)
+  const [itemView, setItemView] = useState<ItemView>({ ...DEFAULT_ITEM_VIEW })
   const [syncError, setSyncError] = useState('')
   const [itemDescription, setItemDescription] = useState('')
   const generation = useRef(0)
   const busyRef = useRef(false)
+  const categoryRemoved = !['all', 'uncategorized'].includes(itemView.category)
+    && !list.categories.some((category) => category.id === itemView.category)
+  const effectiveItemView = categoryRemoved ? { ...itemView, category: 'all' } : itemView
+  const visibleItems = selectItems(list.items, effectiveItemView)
 
   const refresh = useCallback(async () => {
     const updated = await apiRequest<ListDetails>(`/api/lists/${initialList.id}`)
@@ -282,6 +289,9 @@ export function ListDetailClient({ initialList }: { initialList: ListDetails }) 
         </div>
       </div>
 
+      {editing && !visibleItems.some((item) => item.id === editing.id) && (
+        <p role="status">正在編輯的目標不在目前篩選結果中，草稿仍保留。</p>
+      )}
       {editing && (
         <ItemEditor
           key={editing.id}
@@ -372,13 +382,25 @@ export function ListDetailClient({ initialList }: { initialList: ListDetails }) 
       <div className="ts-box" style={{ marginBottom: '1.5rem' }}>
         <div className="ts-content">
           <h3 className="ts-header">目標項目</h3>
+          <ItemViewControls
+            view={effectiveItemView}
+            categories={list.categories}
+            categoryRemoved={categoryRemoved}
+            visibleCount={visibleItems.length}
+            totalCount={list.items.length}
+            onChange={setItemView}
+          />
           {list.items.length === 0 ? (
             <p className="ts-text is-secondary" style={{ marginTop: '1rem' }}>
               清單是空的，新增第一個目標吧。
             </p>
+          ) : visibleItems.length === 0 ? (
+            <p className="ts-text is-secondary" style={{ marginTop: '1rem' }}>
+              沒有符合目前篩選條件的目標，可清除篩選查看其他項目。
+            </p>
           ) : (
             <div className="ts-wrap is-vertical" style={{ gap: '0.75rem', marginTop: '1rem' }}>
-              {list.items.map((item) => {
+              {visibleItems.map((item) => {
                 const category = list.categories.find(
                   (candidate) => candidate.id === item.categoryId,
                 )
