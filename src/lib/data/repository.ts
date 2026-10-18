@@ -39,6 +39,12 @@ export interface DataRepository {
   createList(userId: string, input: CreateListInput): Promise<ListDetails>
   getList(userId: string, listId: string): Promise<ListDetails>
   updateList(userId: string, listId: string, input: UpdateListInput): Promise<ListDetails>
+  transferOwnership(
+    userId: string,
+    listId: string,
+    newOwnerId: string,
+    expectedVersion: number,
+  ): Promise<ListDetails>
   deleteList(userId: string, listId: string): Promise<void>
   createCategory(
     userId: string,

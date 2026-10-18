@@ -105,6 +105,7 @@ export interface ListDetails extends BucketList {
   }
   currentUserRole: EffectiveListRole
   canManage: boolean
+  canTransferOwnership: boolean
   canEditItems: boolean
 }
 

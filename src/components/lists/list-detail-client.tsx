@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { ItemPriority, ListDetails, ListItem, UpdateItemInput, MemberRole } from '@/lib/data'
 
 import { apiRequest, ApiError } from '@/lib/http/client'
+import { OwnershipTransfer } from './ownership-transfer'
 import { ItemEditor } from './item-editor'
 import { InviteLinks } from '@/components/invites/invite-links'
 
@@ -165,6 +166,15 @@ export function ListDetailClient({ initialList }: { initialList: ListDetails }) 
       setSettingsVersion(updated.version)
     })
   }
+
+  const transferOwnership = (newOwnerId: string, expectedVersion: number) =>
+    void run(async () => {
+      const updated = await apiRequest<ListDetails>(`/api/lists/${list.id}/ownership`, {
+        method: 'POST',
+        body: JSON.stringify({ newOwnerId, expectedVersion }),
+      })
+      setList(updated)
+    })
 
   const deleteList = () => {
     if (!window.confirm('這會刪除清單及所有項目，確定繼續？')) return
@@ -618,6 +628,13 @@ export function ListDetailClient({ initialList }: { initialList: ListDetails }) 
                 </div>
               </div>
             </form>
+            {list.canTransferOwnership && (
+              <OwnershipTransfer
+                list={list}
+                busy={busy || editing !== null}
+                onTransfer={transferOwnership}
+              />
+            )}
           </div>
         </div>
       )}
