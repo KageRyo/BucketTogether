@@ -1,17 +1,17 @@
 export type AppRole = 'admin' | 'user'
-export type AuthProvider = 'credentials' | 'line' | 'both'
+export type OAuthProvider = 'line' | 'discord' | 'google'
+export type AuthProvider = 'credentials' | OAuthProvider | 'multiple'
 export type MemberRole = 'owner' | 'editor' | 'viewer'
 export type MembershipStatus = 'pending' | 'accepted'
 export type ItemPriority = 'low' | 'medium' | 'high'
 
 export interface AppUser {
   id: string
-  email: string
+  email: string | null
   displayName: string
   pictureUrl: string | null
   role: AppRole
   authProvider: AuthProvider
-  lineId: string | null
   createdAt: string
   updatedAt: string
 }
@@ -21,6 +21,7 @@ export interface StoredUser extends AppUser {
 }
 
 export interface BucketList {
+  version: number
   id: string
   title: string
   description: string | null
@@ -52,6 +53,7 @@ export interface ListCategory {
 }
 
 export interface ListItem {
+  version: number
   id: string
   listId: string
   categoryId: string | null
@@ -63,13 +65,15 @@ export interface ListItem {
   dueDate: string | null
   priority: ItemPriority | null
   order: number
-  createdBy: string
+  createdBy: string | null
   createdAt: string
   updatedAt: string
 }
 
 export interface LocalData {
-  schemaVersion: 1
+  schemaVersion: 2
+  identities: OAuthIdentity[]
+  inviteLinks: StoredInviteLink[]
   users: StoredUser[]
   lists: BucketList[]
   memberships: ListMembership[]
@@ -116,9 +120,9 @@ export interface CreateListInput {
 }
 
 export interface UpdateListInput {
+  expectedVersion: number
   title?: string
   description?: string | null
-  isPublic?: boolean
 }
 
 export interface CreateItemInput {
@@ -130,10 +134,50 @@ export interface CreateItemInput {
 }
 
 export interface UpdateItemInput {
+  expectedVersion: number
   title?: string
   description?: string | null
   categoryId?: string | null
   priority?: ItemPriority | null
   dueDate?: string | null
   isCompleted?: boolean
+}
+
+export interface OAuthProfile {
+  provider: OAuthProvider
+  providerAccountId: string
+  displayName: string
+  pictureUrl?: string | null
+  email?: string | null
+}
+
+export interface OAuthIdentity {
+  userId: string
+  provider: OAuthProvider
+  providerAccountId: string
+  createdAt: string
+}
+
+export interface InviteLink {
+  id: string
+  listId: string
+  role: Exclude<MemberRole, 'owner'>
+  createdBy: string
+  createdAt: string
+  expiresAt: string
+  revokedAt: string | null
+  acceptedAt: string | null
+}
+
+export interface StoredInviteLink extends InviteLink {
+  tokenHash: string
+}
+
+export interface CreatedInviteLink extends InviteLink {
+  token: string
+}
+export interface InvitePreview {
+  title: string
+  role: Exclude<MemberRole, 'owner'>
+  expiresAt: string
 }

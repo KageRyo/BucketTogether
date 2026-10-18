@@ -15,11 +15,7 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-TW">
       <head>
@@ -28,17 +24,10 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/5.0.2/tocas.min.css"
         />
-        {/* Tocas UI Icons */}
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/tocas-ui/5.0.2/icons.min.css"
-        />
       </head>
       <body>
         <Providers>
-          <div className="ts-app-layout is-full">
-            {children}
-          </div>
+          <div className="ts-app-layout is-full">{children}</div>
         </Providers>
       </body>
     </html>

@@ -8,7 +8,7 @@ interface RouteParams {
 
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const userId = await requireApiUserId()
+    const userId = await requireApiUserId(request)
     const { id, categoryId } = await params
     const body = await readJsonObject(request)
     const category = await getDataRepository().updateCategory(userId, id, categoryId, {
@@ -21,9 +21,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
+export async function DELETE(request: Request, { params }: RouteParams) {
   try {
-    const userId = await requireApiUserId()
+    const userId = await requireApiUserId(request)
     const { id, categoryId } = await params
     await getDataRepository().deleteCategory(userId, id, categoryId)
     return NextResponse.json({ message: '分類已刪除' })

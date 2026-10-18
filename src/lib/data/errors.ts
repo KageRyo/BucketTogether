@@ -1,4 +1,5 @@
 export type DataErrorCode =
+  | 'RATE_LIMITED'
   | 'NOT_FOUND'
   | 'FORBIDDEN'
   | 'CONFLICT'

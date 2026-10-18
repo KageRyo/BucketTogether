@@ -9,7 +9,7 @@ interface RouteParams {
 function priority(value: unknown): ItemPriority | null | undefined {
   if (value === null) return null
   return typeof value === 'string' && ITEM_PRIORITIES.includes(value as ItemPriority)
-    ? value as ItemPriority
+    ? (value as ItemPriority)
     : undefined
 }
 
@@ -26,7 +26,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
 export async function POST(request: Request, { params }: RouteParams) {
   try {
-    const userId = await requireApiUserId()
+    const userId = await requireApiUserId(request)
     const { id } = await params
     const body = await readJsonObject(request)
     const item = await getDataRepository().createItem(userId, id, {
