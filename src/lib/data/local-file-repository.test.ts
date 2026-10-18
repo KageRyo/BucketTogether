@@ -114,4 +114,13 @@ describe('LocalFileRepository', () => {
       code: 'FORBIDDEN',
     })
   })
+  it('only the actual owner can transfer, and pending invitations are not eligible recipients', async () => {
+    await expect(
+      repository.transferOwnership(ALEX_ID, SEEDED_LIST_ID, JAMIE_ID, 1),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' })
+    await repository.respondToInvite(JAMIE_ID, SEEDED_INVITE_ID, 'accept')
+    await expect(
+      repository.transferOwnership(ADMIN_ID, SEEDED_LIST_ID, JAMIE_ID, 1),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  })
 })

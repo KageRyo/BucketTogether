@@ -355,6 +355,7 @@ export class LocalFileRepository implements DataRepository {
       },
       currentUserRole,
       canManage,
+      canTransferOwnership: list.ownerId === userId,
       canEditItems: currentUserRole !== 'viewer',
     }
   }
@@ -658,6 +659,39 @@ export class LocalFileRepository implements DataRepository {
         list.description = input.description?.trim() || null
       }
 
+      list.updatedAt = now()
+      return this.details(data, userId, list)
+    }, true)
+  }
+
+  async transferOwnership(
+    userId: string,
+    listId: string,
+    newOwnerId: string,
+    expectedVersion: number,
+  ): Promise<ListDetails> {
+    return this.withData((data) => {
+      this.user(data, userId)
+      const list = this.list(data, listId)
+      if (list.ownerId !== userId) throw new DataError('FORBIDDEN', '只有目前擁有者可以轉移清單')
+      checkVersion(list.version, expectedVersion)
+      const recipient = data.memberships.find(
+        (m) => m.listId === listId && m.userId === newOwnerId && m.status === 'accepted',
+      )
+      if (newOwnerId === userId || !recipient)
+        throw new DataError('VALIDATION_ERROR', '請選擇同清單中已加入的其他成員')
+      const previous = data.memberships.find(
+        (m) =>
+          m.listId === listId &&
+          m.userId === userId &&
+          m.role === 'owner' &&
+          m.status === 'accepted',
+      )
+      if (!previous) throw new DataError('CONFLICT', '擁有者資料不一致，請重新載入')
+      previous.role = 'editor'
+      recipient.role = 'owner'
+      list.ownerId = newOwnerId
+      list.version++
       list.updatedAt = now()
       return this.details(data, userId, list)
     }, true)

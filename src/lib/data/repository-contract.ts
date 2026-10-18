@@ -186,6 +186,102 @@ export function repositoryContract(
       })
       await expect(repository.listLists(owner)).rejects.toMatchObject({ code: 'NOT_FOUND' })
     })
+    it('transfers ownership atomically and preserves the shared list after the former owner deletes their account', async () => {
+      const list = await repository.createList(owner, {
+        title: 'Hand over',
+        categories: [{ name: 'Keep category' }],
+      })
+      const item = await repository.createItem(owner, list.id, { title: 'Keep item' })
+      await repository.acceptInviteLink(
+        friend,
+        (await repository.createInviteLink(owner, list.id, 'viewer')).token,
+      )
+      const moved = await repository.transferOwnership(owner, list.id, friend, list.version)
+      expect(moved).toMatchObject({
+        ownerId: friend,
+        version: 2,
+        currentUserRole: 'editor',
+        canManage: false,
+        canTransferOwnership: false,
+      })
+      expect(moved.members.map((m) => ({ userId: m.userId, role: m.role }))).toEqual(
+        expect.arrayContaining([
+          { userId: owner, role: 'editor' },
+          { userId: friend, role: 'owner' },
+        ]),
+      )
+      expect(moved.members.filter((m) => m.role === 'owner')).toHaveLength(1)
+      await repository.deleteAccount(owner)
+      const preserved = await repository.getList(friend, list.id)
+      expect(preserved).toMatchObject({ ownerId: friend, canTransferOwnership: true })
+      expect(preserved.categories[0].name).toBe('Keep category')
+      expect(preserved.items[0]).toMatchObject({ id: item.id, title: 'Keep item', createdBy: null })
+    })
+    it('rejects non-owners, self transfers, pending or unrelated recipients and stale settings versions', async () => {
+      const list = await repository.createList(owner, { title: 'Restricted transfer' })
+      await expect(repository.transferOwnership(owner, list.id, friend, 1)).rejects.toMatchObject({
+        code: 'VALIDATION_ERROR',
+      })
+      await expect(repository.transferOwnership(owner, list.id, owner, 1)).rejects.toMatchObject({
+        code: 'VALIDATION_ERROR',
+      })
+      const pending = await repository.createInviteLink(owner, list.id, 'editor')
+      await expect(repository.transferOwnership(friend, list.id, owner, 1)).rejects.toMatchObject({
+        code: 'FORBIDDEN',
+      })
+      await repository.acceptInviteLink(friend, pending.token)
+      await expect(repository.transferOwnership(friend, list.id, owner, 1)).rejects.toMatchObject({
+        code: 'FORBIDDEN',
+      })
+      await repository.updateList(owner, list.id, { title: 'New settings', expectedVersion: 1 })
+      await expect(repository.transferOwnership(owner, list.id, friend, 1)).rejects.toMatchObject({
+        code: 'CONFLICT',
+      })
+      expect((await repository.getList(owner, list.id)).ownerId).toBe(owner)
+    })
+    it('serializes competing transfers without producing multiple owners', async () => {
+      const third = (
+        await repository.resolveOAuthUser({
+          provider: 'line',
+          providerAccountId: 'third',
+          displayName: 'Third',
+        })
+      ).id
+      const list = await repository.createList(owner, { title: 'Concurrent transfer' })
+      for (const user of [friend, third])
+        await repository.acceptInviteLink(
+          user,
+          (await repository.createInviteLink(owner, list.id, 'editor')).token,
+        )
+      const results = await Promise.allSettled([
+        repository.transferOwnership(owner, list.id, friend, 1),
+        repository.transferOwnership(owner, list.id, third, 1),
+      ])
+      expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+      const details = await repository.getList(owner, list.id)
+      expect(details.members.filter((m) => m.role === 'owner').map((m) => m.userId)).toEqual([
+        details.ownerId,
+      ])
+      expect(details.version).toBe(2)
+    })
+    it('serializes transfer and member removal so the owner always has an accepted membership', async () => {
+      const list = await repository.createList(owner, { title: 'Member race' })
+      await repository.acceptInviteLink(
+        friend,
+        (await repository.createInviteLink(owner, list.id, 'editor')).token,
+      )
+      const member = (await repository.listMembers(owner, list.id)).find(
+        (m) => m.userId === friend,
+      )!
+      await Promise.allSettled([
+        repository.transferOwnership(owner, list.id, friend, 1),
+        repository.removeMember(owner, list.id, member.id),
+      ])
+      const details = await repository.getList(owner, list.id)
+      expect(details.members.filter((m) => m.role === 'owner')).toEqual([
+        expect.objectContaining({ userId: details.ownerId, status: 'accepted' }),
+      ])
+    })
     it('limits parallel requests against a shared fixed window', async () => {
       const results = await Promise.all(
         Array.from({ length: 5 }, () => repository.consumeRateLimit('contract-limit', 2, 60)),

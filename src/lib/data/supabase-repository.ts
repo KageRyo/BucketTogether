@@ -165,6 +165,7 @@ export class SupabaseRepository implements DataRepository {
       members: await this.members(db, listId, canManage),
       currentUserRole: role,
       canManage,
+      canTransferOwnership: list.ownerId === userId,
       canEditItems: role !== 'viewer',
       stats: {
         totalItems: items.length,
@@ -358,6 +359,51 @@ export class SupabaseRepository implements DataRepository {
       return this.details(tx, userId, listId)
     })
   }
+  async transferOwnership(
+    userId: string,
+    listId: string,
+    newOwnerId: string,
+    expectedVersion: number,
+  ): Promise<ListDetails> {
+    return this.mutate(userId, listId, 'manage', async (tx, list) => {
+      if (list.ownerId !== userId) throw new DataError('FORBIDDEN', '只有目前擁有者可以轉移清單')
+      checkVersion(list.version, expectedVersion)
+      if (newOwnerId === userId) throw new DataError('VALIDATION_ERROR', '請選擇其他已加入的成員')
+      // Hold the recipient account through commit so account deletion cannot leave a dangling owner.
+      const recipient = (
+        await rows(tx, 'SELECT id FROM users WHERE id = $1 FOR KEY SHARE', [newOwnerId])
+      )[0]
+      const membership = (
+        await rows<ListMembership>(
+          tx,
+          "SELECT * FROM list_members WHERE list_id = $1 AND user_id = $2 AND status = 'accepted'",
+          [listId, newOwnerId],
+        )
+      )[0]
+      if (!recipient || !membership)
+        throw new DataError('VALIDATION_ERROR', '請選擇同清單中已加入的其他成員')
+      const previous = (
+        await rows(
+          tx,
+          "SELECT id FROM list_members WHERE list_id = $1 AND user_id = $2 AND role = 'owner' AND status = 'accepted'",
+          [listId, userId],
+        )
+      )[0]
+      if (!previous) throw new DataError('CONFLICT', '擁有者資料不一致，請重新載入')
+      await rows(
+        tx,
+        "UPDATE list_members SET role = CASE WHEN user_id = $2 THEN 'editor' ELSE 'owner' END WHERE list_id = $1 AND user_id IN ($2, $3)",
+        [listId, userId, newOwnerId],
+      )
+      await rows(
+        tx,
+        'UPDATE lists SET owner_id = $2, version = version + 1, updated_at = clock_timestamp() WHERE id = $1',
+        [listId, newOwnerId],
+      )
+      return this.details(tx, userId, listId)
+    })
+  }
+
   async deleteList(userId: string, listId: string): Promise<void> {
     await this.mutate(userId, listId, 'manage', async (tx) => {
       await rows(tx, 'DELETE FROM lists WHERE id = $1', [listId])
