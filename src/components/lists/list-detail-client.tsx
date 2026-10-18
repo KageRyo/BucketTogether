@@ -7,6 +7,7 @@ import type { ItemPriority, ListDetails, ListItem, UpdateItemInput, MemberRole }
 import { apiRequest, ApiError } from '@/lib/http/client'
 import { OwnershipTransfer } from './ownership-transfer'
 import { ItemEditor } from './item-editor'
+import { ListExport } from './list-export'
 import { InviteLinks } from '@/components/invites/invite-links'
 
 export function ListDetailClient({ initialList }: { initialList: ListDetails }) {
@@ -449,6 +450,8 @@ export function ListDetailClient({ initialList }: { initialList: ListDetails }) 
           )}
         </div>
       </div>
+
+      <ListExport listId={list.id} />
 
       {list.canManage && (
         <div className="ts-grid is-2-columns is-relaxed">
