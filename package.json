@@ -18,7 +18,7 @@
     "config:check": "node scripts/check-config.mjs"
   },
   "dependencies": {
-    "next": "^16.4.2",
+    "next": "^16.4.6",
     "next-auth": "^4.24.15",
     "postgres": "^3.4.9",
     "react": "^18.2.0",
